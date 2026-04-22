@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read, write: if false; }
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'oritsemisanogbe@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function isValidAlbum(data) {
+      return data.keys().hasAll(['title', 'artist', 'coverArt', 'audioUrl', 'tracklist']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.artist is string && data.artist.size() > 0 && data.artist.size() <= 100 &&
+             data.coverArt is string && data.coverArt.size() <= 1000 &&
+             data.audioUrl is string && data.audioUrl.size() <= 1000 &&
+             (data.get('duration', 0) is number) &&
+             (data.get('bpm', 0) is number) &&
+             (data.get('calibrationOffset', 0) is number) &&
+             data.tracklist is list && data.tracklist.size() <= 100 &&
+             (data.get('createdAt', request.time) is timestamp) &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
+    match /albums/{albumId} {
+      allow read: if true; 
+      allow create: if isAdmin() && isValidId(albumId) && isValidAlbum(incoming());
+      allow update: if (isAdmin() && isValidId(albumId) && isValidAlbum(incoming())) &&
+                    (incoming().diff(existing()).affectedKeys().hasAny(['title', 'artist', 'coverArt', 'audioUrl', 'duration', 'bpm', 'calibrationOffset', 'tracklist', 'updatedAt']));
+      allow delete: if isAdmin() && isValidId(albumId);
+    }
+
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; 
+    }
+  }
+}

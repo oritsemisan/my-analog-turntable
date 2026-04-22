@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Album": {
+      "title": "Album",
+      "description": "An album with tracklist and audio file reference",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 100 },
+        "artist": { "type": "string", "maxLength": 100 },
+        "coverArt": { "type": "string", "format": "uri" },
+        "audioUrl": { "type": "string", "format": "uri" },
+        "duration": { "type": "number" },
+        "bpm": { "type": "number" },
+        "calibrationOffset": { "type": "number" },
+        "tracklist": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "artist", "coverArt", "audioUrl", "tracklist"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin user allowed to upload content",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "albums/{albumId}": {
+      "schema": { "$ref": "#/entities/Album" },
+      "description": "Stores the albums and their music data accessible to the public."
+    },
+    "admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Stores admin users."
+    }
+  }
+}
